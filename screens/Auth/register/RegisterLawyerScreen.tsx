@@ -6,6 +6,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Province, LawyerSpecialization } from '../../../types/enums';
 import { SPECIALIZATION_LABELS, PROVINCE_LABELS } from '../../../types/labels';
 import { RadioButton } from 'react-native-paper';
+import { authService } from '../../../services/authService';
 import * as SecureStore from 'expo-secure-store';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../types/navigation';
@@ -30,41 +31,59 @@ export default function RegisterLawyerScreen() {
 
     const handleSubmit = async () => {
         if (
-            !tuitionNumber ||
-            !yearExperience ||
+            !tuitionNumber.trim() ||
+            !yearExperience.trim() ||
             !province ||
             !(province in Province) ||
             specializations.length === 0
         ) {
-            Alert.alert('Error', 'Completa todos los campos del abogado y selecciona una provincia válida.');
+            Alert.alert('Error', 'Completa todos los campos y selecciona al menos una especialización.');
+            return;
+        }
+
+        const parsedYearExperience = parseInt(yearExperience, 10);
+        if (isNaN(parsedYearExperience) || parsedYearExperience < 0) {
+            Alert.alert('Error', 'Años de experiencia debe ser un número válido.');
             return;
         }
 
         setLoading(true);
 
         try {
+            await authService.register({
+                firstName,
+                lastName,
+                email,
+                phoneNumber,
+                password,
+            });
+
             const lawyerData = {
-                tuitionNumber,
-                yearExperience,
+                tuitionNumber: tuitionNumber.trim(),
+                yearExperience: parsedYearExperience,
                 province,
                 specializations,
                 firstName,
                 lastName,
                 email,
                 phoneNumber,
-                password,
             };
 
+            console.log('[DEBUG] Guardando datos de abogado:', lawyerData);
+
             await SecureStore.setItemAsync('pendingLawyerData', JSON.stringify(lawyerData));
+            await SecureStore.setItemAsync('pendingLawyerEmail', email);
+            await SecureStore.setItemAsync('pendingLawyerPassword', password);
 
             Alert.alert(
-                'Información guardada',
-                'Ahora verifica tu correo. Una vez verificado, completa el registro como abogado.'
+                'Revisa tu correo',
+                'Te hemos enviado un enlace para verificar tu cuenta. Después de hacerlo, inicia sesión.'
             );
 
             navigation.navigate('VerifyEmail');
         } catch (err: any) {
-            Alert.alert('Error', 'No se pudo guardar la información localmente.');
+            console.error('[SecureStore ERROR]', err);
+            Alert.alert('Error', 'No se pudo guardar la información localmente o falló el registro.');
         } finally {
             setLoading(false);
         }

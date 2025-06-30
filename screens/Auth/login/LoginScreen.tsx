@@ -37,12 +37,26 @@ export default function LoginScreen() {
                 return;
             }
 
-            await SecureStore.setItemAsync('token', token); // Guarda token
+            await SecureStore.setItemAsync('token', token);
 
             const userResponse = await authService.getMe();
             const userData = userResponse.data;
 
+            await SecureStore.setItemAsync('user', JSON.stringify(userData));
             loginContext(userData);
+
+            const rawLawyerData = await SecureStore.getItemAsync('pendingLawyerData');
+            if (rawLawyerData) {
+                const lawyerData = JSON.parse(rawLawyerData);
+
+                await authService.requestLawyer(lawyerData);
+
+                await SecureStore.deleteItemAsync('pendingLawyerData');
+                await SecureStore.deleteItemAsync('pendingLawyerEmail');
+                await SecureStore.deleteItemAsync('pendingLawyerPassword');
+
+                Alert.alert('¡Listo!', 'Se completó tu solicitud como abogado :D');
+            }
 
             console.log('Login exitoso!');
             navigation.navigate('Home');

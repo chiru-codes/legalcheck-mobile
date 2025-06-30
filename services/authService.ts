@@ -1,13 +1,13 @@
 import api from './api';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
 interface LoginCredentials {
     username: string;
     password: string;
 }
 
-const API_URL = 'http://192.168.18.110:8080';
+const API_URL = Constants.expoConfig?.extra?.API_URL;
 
 export const authService = {
     login: (credentials: LoginCredentials) => api.post('/auth/login', credentials),
@@ -29,4 +29,5 @@ export const authService = {
     ) => {
         return api.put(`/api/lawyers/${userId}`, lawyerData);
     },
+    requestLawyer: (lawyerData: Record<string, any>) => api.post('/api/lawyers/request', lawyerData),
 };
